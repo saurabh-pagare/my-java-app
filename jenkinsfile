@@ -1,41 +1,53 @@
 // Jenkinsfile (Declarative Pipeline)
 
-
 pipeline {
-	//Define where the pipeline will run. 'any' means on any available Jenkins agent/node.
-	//For out Docker container, this will be the 'master' node itself.
-	agent any
-	
-	//Define environment variable specific to this pipeline.
-	//MAVEN_HOME points to the Maven tool you configured in jenkins (named  'M3').
-	environment {
-		
-		MAVEN_HOME = tool 'M3'
-	}
-	
-	Stages {
-		
-		stage('Checkout') {
-			steps {
-				echo 'Checking out source from Git...'
-			}
-		}
-		
-		stage ('Build') {
-			steps {
-				echo 'Building the project with Maven...'
-				sh "${MAVEN_HOME}/bin/mvn clean compile"
-			}
-		}
-		
-		stage('Test') {
-			steps {
-				echo 'Running unit tests...'
-				sh "{MAVEN_HOME}/bin/mvn test"
-			}
-		}
-		
-		stage('Package') {
+    // Define where the pipeline will run. 'any' means on any available Jenkins agent/node.
+    // For our Docker container, this will be the 'master' node itself.
+    agent any
+
+    // Define environment variables specific to this pipeline.
+    // MAVEN_HOME points to the Maven tool you configured in Jenkins (named 'M3').
+    environment {
+        MAVEN_HOME = tool 'M3'
+        // Example for a specific JDK version if you configured it as e.g., 'JDK_17'
+        // JAVA_HOME = tool 'JDK_17'
+    }
+
+    // Define the stages of your CI/CD workflow.
+    stages {
+        // Stage 1: Checkout the code
+        stage('Checkout') {
+            steps {
+                // This step is implicitly handled by the SCM configuration of the Pipeline job,
+                // but sometimes an explicit 'checkout scm' is useful for clarity or specific SCM configurations.
+                // For a basic setup, it often just acts as a placeholder or echo.
+                echo 'Checking out source code from Git...'
+                // Alternatively, you could use 'git branch: 'main', credentialsId: 'your_credentials_id', url: 'your_repo_url''
+                // but 'checkout scm' is simpler when defined via the Jenkins job UI.
+            }
+        }
+
+        // Stage 2: Build the project
+        stage('Build') {
+            steps {
+                echo 'Building the project with Maven...'
+                // Execute Maven's clean and compile goals
+                // Use the MAVEN_HOME environment variable to get the path to Maven's bin directory
+                sh "${MAVEN_HOME}/bin/mvn clean compile"
+            }
+        }
+
+        // Stage 3: Run unit tests
+        stage('Test') {
+            steps {
+                echo 'Running unit tests...'
+                // Execute Maven's test goal
+                sh "${MAVEN_HOME}/bin/mvn test"
+            }
+        }
+
+        // Stage 4: Package the application (create JAR/WAR)
+        stage('Package') {
             steps {
                 echo 'Packaging the application...'
                 // Execute Maven's package goal.
@@ -43,9 +55,21 @@ pipeline {
                 sh "${MAVEN_HOME}/bin/mvn package -Dmaven.test.skip=true"
             }
         }
-	}
-	
-	post {
+
+        // Optional Stage: Simple Deployment (for illustration)
+        // stage('Deploy to Dev') {
+        //     steps {
+        //         echo 'Simulating deployment to a development environment...'
+        //         // In a real scenario, this would involve SCP, SSH, Ansible, Kubernetes commands, etc.
+        //         // For now, let's just copy the JAR to a 'deploy' folder within the workspace
+        //         sh 'mkdir -p deploy && cp target/*.jar deploy/'
+        //         echo 'Artifact moved to deploy folder.'
+        //     }
+        // }
+    }
+
+    // Define post-build actions that run after all stages are completed.
+    post {
         // 'always' block runs regardless of the pipeline's overall status (success or failure).
         always {
             echo 'Cleaning up workspace...'
@@ -66,5 +90,5 @@ pipeline {
             // You might want to send notifications here
             // mail to: 'your-email@example.com', subject: "Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}"
         }
-	}
+    }
 }
